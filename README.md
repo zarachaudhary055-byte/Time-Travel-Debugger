@@ -16,20 +16,19 @@ Added function tracking using FuncEntry.
 Added pending CALL patch tracking using PendingPatch.
 Verified that resolve.bin is generated correctly.
 Verified that CALL targets are patched to the correct function offsets.
-Tested the Resolve stage successfully on Linux/WSL using g++.
+Tested the Resolve stage successfully on Linux.
 
 7-OCT-2026
 
 I continued the project from Pass 0x2 (Execution).
 What I did:
-I compiled server.cpp on Ubuntu with g++ (-Wall -Wextra).
+I compiled server.cpp on Ubuntu with g++ .
 I made a small test program in source.bin.
 I ran ./Server. It passed validation and resolve,
    ran the program, and made 7 snapshots.
  The file session.tdbg was created.
 
 How I tested:
-- I checked that session.tdbg starts with "TTDB" (the file ID).
 - I used a small Python script to read the header,
   all snapshots, and the index. It printed VERIFY OK,
   so the file format is correct.
@@ -54,3 +53,6 @@ to:
 After the fix:
 I ran the test again. The last step now shows a = 8.
 The bug is fixed.
+
+11-OCT-2026
+Fixed some minor errors and commit final.

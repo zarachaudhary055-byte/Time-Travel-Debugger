@@ -56,3 +56,13 @@ The bug is fixed.
 
 11-OCT-2026
 Fixed some minor errors and commit final.
+
+8-NOV-26
+Started implementing phase 02:
+Windows and Linux Support
+Fixed code in helper.h so it compiles without errors on both Windows (Visual Studio) and Linux (Ubuntu / WSL).
+
+Load Balancer Updates
+Updated load_balancer.cpp to handle multiple client connections safely using threads and locks.
+Set a queue limit of 100 requests to manage heavy server traffic.
+

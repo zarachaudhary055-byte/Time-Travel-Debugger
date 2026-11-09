@@ -58,11 +58,30 @@ The bug is fixed.
 Fixed some minor errors and commit final.
 
 8-NOV-26
+
 Started implementing phase 02:
 Windows and Linux Support
 Fixed code in helper.h so it compiles without errors on both Windows (Visual Studio) and Linux (Ubuntu / WSL).
 
 Load Balancer Updates
+
 Updated load_balancer.cpp to handle multiple client connections safely using threads and locks.
 Set a queue limit of 100 requests to manage heavy server traffic.
 
+9-NOV-26
+ 
+Interactive Client Shell (client.cpp)
+Interactive Debugger Interface
+
+Created a command-line interface (ttdb> ) for users to control the debugging session.
+Supported Debug Commands
+start <filename>: Connects to the load balancer and uploads the executable file to begin debugging.
+
+next: Moves forward by one step in execution.
+prv: Moves backward by one step in execution (Time-Travel).
+jmp next <n>: Jumps forward by n execution steps at once.
+quit: Closes the debugging session and exits the program safely.
+
+Response Handling & Integrity
+Receives snapshot data (stack depth, variable values, line numbers) from the server after each step.
+Verifies checksums on all incoming responses to catch corrupted data.

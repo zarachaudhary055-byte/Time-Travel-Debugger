@@ -193,7 +193,11 @@ bool openTdbg(const char* path, TdbgReader& r)
     r.file = fopen(path, "rb");
     if (!r.file) return false;
 
-    if (fread(&r.header, sizeof(TTDBHeader), 1, r.file) != 1)
+    if (fread(r.header.magic, 1, 4, r.file) != 4
+        || fread(&r.header.version, sizeof(int32_t), 1, r.file) != 1
+        || fread(&r.header.stepCount, sizeof(int32_t), 1, r.file) != 1
+        || fread(&r.header.indexOffset, sizeof(int64_t), 1, r.file) != 1
+        || r.header.stepCount <= 0)
     {
         fclose(r.file);
         r.file = nullptr;
@@ -235,20 +239,51 @@ void closeTdbg(TdbgReader& r)
     r.index.clear();
 }
 
+static bool readStr(FILE* f, char* dst, size_t cap)
+{
+    uint32_t len = 0;
+    if (fread(&len, sizeof(len), 1, f) != 1) return false;
+    if (len > 1024 * 1024) return false;
+    size_t keep = (len < cap - 1) ? len : cap - 1;
+    if (keep > 0 && fread(dst, 1, keep, f) != keep) return false;
+    dst[keep] = '\0';
+    if (len > keep && fseek(f, (long)(len - keep), SEEK_CUR) != 0) return false;
+    return true;
+}
+
+static bool readVar(FILE* f, Variable& v)
+{
+    if (!readStr(f, v.name, sizeof(v.name))) return false;
+    return fread(&v.value, sizeof(int32_t), 1, f) == 1;
+}
+
 Snapshot* readSnapshotAt(TdbgReader& r, int32_t step)
 {
     if (!r.file || step < 0 || step >= r.header.stepCount) return nullptr;
-
-    int64_t offset = r.index[step];
-    if (fseek(r.file, offset, SEEK_SET) != 0) return nullptr;
+    if (fseek(r.file, (long)r.index[step], SEEK_SET) != 0) return nullptr;
 
     Snapshot* s = new Snapshot();
-    if (fread(s, sizeof(Snapshot), 1, r.file) != 1)
+    memset(s, 0, sizeof(Snapshot));
+    FILE* f = r.file;
+    bool ok = fread(&s->stackDepth, sizeof(int32_t), 1, f) == 1
+        && s->stackDepth >= 0 && s->stackDepth <= MAX_STACK_DEPTH;
+
+    for (int i = 0; ok && i < s->stackDepth; ++i)
     {
-        delete s;
-        return nullptr;
+        Frame& fr = s->callStack[i];
+        ok = readStr(f, fr.func_name, sizeof(fr.func_name))
+            && fread(&fr.argc, sizeof(int32_t), 1, f) == 1
+            && fr.argc >= 0 && fr.argc <= MAX_VARS_PER_FRAME;
+        for (int a = 0; ok && a < fr.argc; ++a) 
+            ok = readVar(f, fr.argv[a]);
+        ok = ok && fread(&fr.returnLine, sizeof(int32_t), 1, f) == 1
+            && fread(&fr.localCount, sizeof(int32_t), 1, f) == 1
+            && fr.localCount >= 0 && fr.localCount <= MAX_VARS_PER_FRAME;
+        for (int l = 0; ok && l < fr.localCount; ++l)
+            ok = readVar(f, fr.locals[l]);
     }
 
+    if (!ok) { delete s; return nullptr; }
     return s;
 }
 
